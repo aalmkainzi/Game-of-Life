@@ -3,9 +3,18 @@
 #include "raylib/include/raymath.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
+// config
 #define GRID_W 100
 #define GRID_H 100
+#define BACKGROUND WHITE
+#define LINE_COLOR BLACK
+#define CELL_SIZE 10.0
+#define CELL_COLOR ORANGE
+#define CELL_SHAPE CIRCLE
+#define HOVER_COLOR SKYBLUE
+#define TICK_DIFF 0.1
 
 bool grid [GRID_H][GRID_W] = { 0 };
 bool grid2[GRID_H][GRID_W] = { 0 };
@@ -19,43 +28,55 @@ bool new_state(bool is_alive, Neighbors nbrs);
 void iclamp(int *num, int min, int max);
 bool time_elapsed(double seconds);
 
+enum
+{
+    CIRCLE,
+    SQUARE,
+    TRIANGLE
+} Cell_Shape;
+
 int main()
 {
     bool(*current_grid)[GRID_H][GRID_W] = &grid;
     bool(*other_grid)  [GRID_H][GRID_W] = &grid2;
     
-    float cell_size = 10.0f;
-    
-    const int WINDOW_W = cell_size * GRID_W;
-    const int WINDOW_H = cell_size * GRID_H;
+    const int WINDOW_W = CELL_SIZE * GRID_W;
+    const int WINDOW_H = CELL_SIZE * GRID_H;
     
     Camera2D camera = { 0 };
     camera.zoom = 1;
     
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(WINDOW_W, WINDOW_H, "Game Of Life");
+    
     SetTargetFPS(60);
     
     enum
     {
         RUNNING,
         STOPPED,
-    } current_state = STOPPED;
+    } game_state = STOPPED;
     
     while(!WindowShouldClose())
     {
         BeginDrawing();
         BeginMode2D(camera);
-        ClearBackground(WHITE);
+        ClearBackground(BACKGROUND);
         
         Vector2 mouse = GetMousePosition();
         
         Vector2 mouse_world = GetScreenToWorld2D(mouse, camera);
         
-        int hovered_cellx = (mouse_world.x) / (cell_size);
-        int hovered_celly = (mouse_world.y) / (cell_size);
+        int hovered_cellx = (mouse_world.x) / (CELL_SIZE);
+        int hovered_celly = (mouse_world.y) / (CELL_SIZE);
         
         iclamp(&hovered_cellx, 0, GRID_W - 1);
         iclamp(&hovered_celly, 0, GRID_H - 1);
+        
+        if(IsKeyPressed(KEY_P))
+        {
+            printf("%d %d\n", hovered_cellx, hovered_celly);
+        }
         
         if(IsMouseButtonDown(MOUSE_LEFT_BUTTON))
         {
@@ -86,57 +107,84 @@ int main()
             camera.zoom = Clamp(camera.zoom, 0.75, 17);
         }
         
-        if(current_state == STOPPED && IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
+        if(game_state == STOPPED && IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
         {
-            (*current_grid)[hovered_celly][hovered_cellx] = true;
+            (*current_grid)[hovered_celly][hovered_cellx] ^= 1;
         }
         
+        if(IsKeyPressed(KEY_R))
+        {
+            memset(grid, 0, sizeof(grid));
+            memset(grid2, 0, sizeof(grid));
+        }
         if(IsKeyPressed(KEY_S))
         {
-            current_state = (current_state == STOPPED) ? RUNNING : STOPPED;
+            game_state = (game_state == STOPPED) ? RUNNING : STOPPED;
         }
+        
+        DrawRectangle(hovered_cellx * CELL_SIZE, hovered_celly * CELL_SIZE, CELL_SIZE, CELL_SIZE, HOVER_COLOR);
         
         for(int i = 0 ; i < GRID_H ; i++)
         {
             for(int j = 0 ; j < GRID_W ; j++)
             {
                 if((*current_grid)[i][j])
-                    DrawCircle(j * cell_size + cell_size/2, i * cell_size + cell_size/2, cell_size / 2, BLUE);
+                {
+                    switch(CELL_SHAPE)
+                    {
+                        case CIRCLE:
+                            DrawCircle(j * CELL_SIZE + CELL_SIZE/2, i * CELL_SIZE + CELL_SIZE/2, CELL_SIZE / 2, CELL_COLOR);
+                            break;
+                        case SQUARE:
+                            DrawRectangle(j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE, CELL_COLOR);
+                            break;
+                        case TRIANGLE:
+                            DrawTriangle(
+                                    (Vector2){j * CELL_SIZE + CELL_SIZE/2, i * CELL_SIZE},
+                                    (Vector2){j * CELL_SIZE, i * CELL_SIZE + CELL_SIZE},
+                                    (Vector2){j * CELL_SIZE + CELL_SIZE, i * CELL_SIZE + CELL_SIZE},
+                                    CELL_COLOR
+                            );
+                            break;
+                    }
+                }
             }
         }
         
-        DrawRectangle(hovered_cellx * cell_size, hovered_celly * cell_size, cell_size, cell_size, SKYBLUE);
         
         for(int i = 0 ; i <= GRID_H ; i++)
         {
             DrawLine(
-                0, (i * cell_size),
-                (cell_size * GRID_W), (i * cell_size),
-                BLACK
+                0, (i * CELL_SIZE),
+                (CELL_SIZE * GRID_W), (i * CELL_SIZE),
+                LINE_COLOR
             );
         }
         
         for(int i = 0 ; i <= GRID_W ; i++)
         {
             DrawLine(
-                (i * cell_size), 0,
-                (i * cell_size), (cell_size * GRID_H),
-                BLACK
+                (i * CELL_SIZE), 0,
+                (i * CELL_SIZE), (CELL_SIZE * GRID_H),
+                LINE_COLOR
             );
         }
         
-        if(current_state == RUNNING && time_elapsed(0.5))
+        if(game_state == RUNNING && time_elapsed(TICK_DIFF))
         {
             for(int i = 0 ; i < GRID_H ; i++)
             {
                 for(int j = 0 ; j < GRID_W ; j++)
                 {
-                    (*other_grid)[i][j] = new_state((*current_grid)[i][j], get_neighbors(current_grid, j, i));
+                    bool cell_state = (*current_grid)[i][j];
+                    Neighbors nbors = get_neighbors(current_grid, j, i);
+                    bool next_cell_state = new_state(cell_state, nbors);
+                    (*other_grid)[i][j] = next_cell_state;
                 }
             }
             
             // swapping the matrices
-            typeof(current_grid) temp = current_grid;
+            void *temp = current_grid;
             current_grid = other_grid;
             other_grid = temp;
         }
@@ -155,10 +203,10 @@ Neighbors get_neighbors(bool(*game_grid)[GRID_H][GRID_W], int x, int y)
     int y_from_bottom     = GRID_H - y;
     int x_from_right      = GRID_W - x;
     
-    int top_neighbor_y    = y_from_bottom % GRID_H;
+    int top_neighbor_y    = GRID_H - (y_from_bottom % GRID_H) - 1;
     int bottom_neighbor_y = (y + 1) % GRID_H;
     int right_neighbor_x  = (x + 1) % GRID_W;
-    int left_neighbor_x   = x_from_right % GRID_W;
+    int left_neighbor_x   = GRID_W - (x_from_right % GRID_W) - 1;
     
     ret.n[0] = (*game_grid)[top_neighbor_y][x];
     ret.n[1] = (*game_grid)[top_neighbor_y][right_neighbor_x];
@@ -212,12 +260,15 @@ bool time_elapsed(double seconds)
     static double prev_time;
     if(first_call)
     {
+        first_call = false;
         prev_time = GetTime();
         return true;
     }
     
-    if((GetTime() - prev_time) >= seconds)
+    double now = GetTime();
+    if((now - prev_time) >= seconds)
     {
+        prev_time = now;
         return true;
     }
     else
