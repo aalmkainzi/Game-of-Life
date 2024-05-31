@@ -51,11 +51,7 @@ int main()
     
     SetTargetFPS(60);
     
-    enum
-    {
-        RUNNING,
-        STOPPED,
-    } game_state = STOPPED;
+    bool is_running = false;
     
     while(!WindowShouldClose())
     {
@@ -64,19 +60,12 @@ int main()
         ClearBackground(BACKGROUND);
         
         Vector2 mouse = GetMousePosition();
-        
         Vector2 mouse_world = GetScreenToWorld2D(mouse, camera);
         
         int hovered_cellx = (mouse_world.x) / (CELL_SIZE);
         int hovered_celly = (mouse_world.y) / (CELL_SIZE);
-        
         iclamp(&hovered_cellx, 0, GRID_W - 1);
         iclamp(&hovered_celly, 0, GRID_H - 1);
-        
-        if(IsKeyPressed(KEY_P))
-        {
-            printf("%d %d\n", hovered_cellx, hovered_celly);
-        }
         
         if(IsMouseButtonDown(MOUSE_LEFT_BUTTON))
         {
@@ -91,9 +80,7 @@ int main()
         if(scroll != 0 || (IsKeyDown(KEY_MINUS) && camera.zoom >= 0.75) || (IsKeyDown(KEY_EQUAL) && camera.zoom <= 17))
         {
             Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), camera);
-            
             camera.offset = GetMousePosition();
-            
             camera.target = mouse_world;
             
             int dir = 1;
@@ -107,7 +94,7 @@ int main()
             camera.zoom = Clamp(camera.zoom, 0.75, 17);
         }
         
-        if(game_state == STOPPED && IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
+        if(!is_running && IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
         {
             (*current_grid)[hovered_celly][hovered_cellx] ^= 1;
         }
@@ -115,11 +102,11 @@ int main()
         if(IsKeyPressed(KEY_R))
         {
             memset(grid, 0, sizeof(grid));
-            memset(grid2, 0, sizeof(grid));
+            memset(grid2, 0, sizeof(grid2));
         }
-        if(IsKeyPressed(KEY_S))
+        if(IsKeyPressed(KEY_S) || IsKeyPressed(KEY_SPACE))
         {
-            game_state = (game_state == STOPPED) ? RUNNING : STOPPED;
+            is_running = !is_running;
         }
         
         DrawRectangle(hovered_cellx * CELL_SIZE, hovered_celly * CELL_SIZE, CELL_SIZE, CELL_SIZE, HOVER_COLOR);
@@ -140,17 +127,16 @@ int main()
                             break;
                         case TRIANGLE:
                             DrawTriangle(
-                                    (Vector2){j * CELL_SIZE + CELL_SIZE/2, i * CELL_SIZE},
-                                    (Vector2){j * CELL_SIZE, i * CELL_SIZE + CELL_SIZE},
-                                    (Vector2){j * CELL_SIZE + CELL_SIZE, i * CELL_SIZE + CELL_SIZE},
-                                    CELL_COLOR
+                                (Vector2){j * CELL_SIZE + CELL_SIZE/2, i * CELL_SIZE},
+                                (Vector2){j * CELL_SIZE, i * CELL_SIZE + CELL_SIZE},
+                                (Vector2){j * CELL_SIZE + CELL_SIZE, i * CELL_SIZE + CELL_SIZE},
+                                CELL_COLOR
                             );
                             break;
                     }
                 }
             }
         }
-        
         
         for(int i = 0 ; i <= GRID_H ; i++)
         {
@@ -170,7 +156,7 @@ int main()
             );
         }
         
-        if(game_state == RUNNING && time_elapsed(TICK_DIFF))
+        if(is_running && time_elapsed(TICK_DIFF))
         {
             for(int i = 0 ; i < GRID_H ; i++)
             {
