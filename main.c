@@ -108,11 +108,11 @@ int main()
             (*current_grid)[hovered_celly][hovered_cellx] ^= 1;
         }
         
-        if(IsKeyPressed(KEY_C))
+        if(IsKeyPressed(KEY_C) && !is_running)
         {
             memset(current_grid, 0, sizeof(grid));
         }
-        if(IsKeyPressed(KEY_R))
+        if(IsKeyPressed(KEY_R) && !is_running)
         {
             memset(current_grid, 0, sizeof(grid));
             for(int i = 0 ; i < GRID_H ; i++)
