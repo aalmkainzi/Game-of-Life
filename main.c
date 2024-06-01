@@ -14,9 +14,16 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
-#include "raylib/include/raylib.h"
-#include "raylib/include/rlgl.h"
-#include "raylib/include/raymath.h"
+
+#if defined(__linux__)
+#include "raylib_linux/include/raylib.h"
+#include "raylib_linux/include/rlgl.h"
+#include "raylib_linux/include/raymath.h"
+#elif defined(_WIN32)
+#include "raylib_windows/include/raylib.h"
+#include "raylib_windows/include/rlgl.h"
+#include "raylib_windows/include/raymath.h"
+#endif
 
 bool grid [GRID_H][GRID_W] = { 0 };
 bool grid2[GRID_H][GRID_W] = { 0 };
