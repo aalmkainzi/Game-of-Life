@@ -9,12 +9,14 @@
 #define CELL_SHAPE CIRCLE
 #define HOVER_COLOR SKYBLUE
 
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <string.h>
 #include "raylib/include/raylib.h"
 #include "raylib/include/rlgl.h"
 #include "raylib/include/raymath.h"
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
 
 bool grid [GRID_H][GRID_W] = { 0 };
 bool grid2[GRID_H][GRID_W] = { 0 };
@@ -44,6 +46,8 @@ enum
 
 int main()
 {
+    srand(time(NULL));
+    
     bool(*current_grid)[GRID_H][GRID_W] = &grid;
     bool(*other_grid)  [GRID_H][GRID_W] = &grid2;
     
@@ -111,6 +115,9 @@ int main()
         if(IsKeyPressed(KEY_R))
         {
             memset(current_grid, 0, sizeof(grid));
+            for(int i = 0 ; i < GRID_H ; i++)
+                for(int j = 0 ; j < GRID_W ; j++)
+                    (*current_grid)[i][j] = rand() % 2;
         }
         if(IsKeyPressed(KEY_S) || IsKeyPressed(KEY_SPACE))
         {
