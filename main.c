@@ -277,17 +277,9 @@ __popcnt(nbrs_u8.c);
 __builtin_popcount(nbrs_u8.c);
 #endif
     
-    if(is_alive && count < 2)
-    {
-        return false;
-    }
     if(is_alive && (count == 2 || count == 3))
     {
         return true;
-    }
-    if(is_alive && count > 2)
-    {
-        return false;
     }
     if(!is_alive && count == 3)
     {
