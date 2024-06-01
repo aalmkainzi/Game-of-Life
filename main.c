@@ -1,3 +1,14 @@
+// config
+#define GRID_W 100
+#define GRID_H 100
+#define BACKGROUND BLACK
+#define LINE_COLOR BLANK
+#define BORDER_COLOR YELLOW
+#define CELL_SIZE 10.0
+#define CELL_COLOR ORANGE
+#define CELL_SHAPE CIRCLE
+#define HOVER_COLOR SKYBLUE
+
 #include "raylib/include/raylib.h"
 #include "raylib/include/rlgl.h"
 #include "raylib/include/raymath.h"
@@ -5,22 +16,18 @@
 #include <stdio.h>
 #include <string.h>
 
-// config
-#define GRID_W 100
-#define GRID_H 100
-#define BACKGROUND WHITE
-#define LINE_COLOR BLACK
-#define CELL_SIZE 10.0
-#define CELL_COLOR ORANGE
-#define CELL_SHAPE CIRCLE
-#define HOVER_COLOR SKYBLUE
-#define TICK_DIFF 0.1
-
 bool grid [GRID_H][GRID_W] = { 0 };
 bool grid2[GRID_H][GRID_W] = { 0 };
 
 typedef struct {
-    bool n[8];
+    bool n1: 1;
+    bool n2: 1;
+    bool n3: 1;
+    bool n4: 1;
+    bool n5: 1;
+    bool n6: 1;
+    bool n7: 1;
+    bool n8: 1;
 } Neighbors;
 
 Neighbors get_neighbors(bool(*grid)[GRID_H][GRID_W], int x, int y);
@@ -40,18 +47,17 @@ int main()
     bool(*current_grid)[GRID_H][GRID_W] = &grid;
     bool(*other_grid)  [GRID_H][GRID_W] = &grid2;
     
-    const int WINDOW_W = CELL_SIZE * GRID_W;
-    const int WINDOW_H = CELL_SIZE * GRID_H;
+    int window_w = CELL_SIZE * GRID_W;
+    int window_h = CELL_SIZE * GRID_H;
     
     Camera2D camera = { 0 };
     camera.zoom = 1;
     
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    InitWindow(WINDOW_W, WINDOW_H, "Game Of Life");
-    
-    SetTargetFPS(60);
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
+    InitWindow(window_w, window_h, "Game Of Life");
     
     bool is_running = false;
+    double tick_diff = 0.1;
     
     while(!WindowShouldClose())
     {
@@ -79,8 +85,7 @@ int main()
         float scroll = GetMouseWheelMove();
         if(scroll != 0 || (IsKeyDown(KEY_MINUS) && camera.zoom >= 0.75) || (IsKeyDown(KEY_EQUAL) && camera.zoom <= 17))
         {
-            Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), camera);
-            camera.offset = GetMousePosition();
+            camera.offset = mouse;
             camera.target = mouse_world;
             
             int dir = 1;
@@ -99,16 +104,28 @@ int main()
             (*current_grid)[hovered_celly][hovered_cellx] ^= 1;
         }
         
+        if(IsKeyPressed(KEY_C))
+        {
+            memset(current_grid, 0, sizeof(grid));
+        }
         if(IsKeyPressed(KEY_R))
         {
-            memset(grid, 0, sizeof(grid));
-            memset(grid2, 0, sizeof(grid2));
+            memset(current_grid, 0, sizeof(grid));
         }
         if(IsKeyPressed(KEY_S) || IsKeyPressed(KEY_SPACE))
         {
             is_running = !is_running;
         }
+        if(IsKeyPressed(KEY_UP) && tick_diff >= 0.0001)
+        {
+            tick_diff -= 0.01;
+        }
+        if(IsKeyPressed(KEY_DOWN) && tick_diff <= 4)
+        {
+            tick_diff += 0.01;
+        }
         
+        // Color the hovered cell
         DrawRectangle(hovered_cellx * CELL_SIZE, hovered_celly * CELL_SIZE, CELL_SIZE, CELL_SIZE, HOVER_COLOR);
         
         for(int i = 0 ; i < GRID_H ; i++)
@@ -138,7 +155,32 @@ int main()
             }
         }
         
-        for(int i = 0 ; i <= GRID_H ; i++)
+        // left border
+        DrawLine(
+                0, 0,
+                (CELL_SIZE * GRID_W), 0,
+                BORDER_COLOR
+        );
+        // right border
+        DrawLine(
+            0, (GRID_H * CELL_SIZE),
+            (CELL_SIZE * GRID_W), (GRID_H * CELL_SIZE),
+            BORDER_COLOR
+        );
+        // top border
+        DrawLine(
+            0, 0,
+            0, (CELL_SIZE * GRID_H),
+            BORDER_COLOR
+        );
+        // bottom border
+        DrawLine(
+            (GRID_W * CELL_SIZE), 0,
+            (GRID_W * CELL_SIZE), (CELL_SIZE * GRID_H),
+            BORDER_COLOR
+        );
+        
+        for(int i = 1 ; i < GRID_H ; i++)
         {
             DrawLine(
                 0, (i * CELL_SIZE),
@@ -147,7 +189,7 @@ int main()
             );
         }
         
-        for(int i = 0 ; i <= GRID_W ; i++)
+        for(int i = 1 ; i < GRID_W ; i++)
         {
             DrawLine(
                 (i * CELL_SIZE), 0,
@@ -156,7 +198,7 @@ int main()
             );
         }
         
-        if(is_running && time_elapsed(TICK_DIFF))
+        if(is_running && time_elapsed(tick_diff))
         {
             for(int i = 0 ; i < GRID_H ; i++)
             {
@@ -194,23 +236,32 @@ Neighbors get_neighbors(bool(*game_grid)[GRID_H][GRID_W], int x, int y)
     int right_neighbor_x  = (x + 1) % GRID_W;
     int left_neighbor_x   = GRID_W - (x_from_right % GRID_W) - 1;
     
-    ret.n[0] = (*game_grid)[top_neighbor_y][x];
-    ret.n[1] = (*game_grid)[top_neighbor_y][right_neighbor_x];
-    ret.n[2] = (*game_grid)[y][right_neighbor_x];
-    ret.n[3] = (*game_grid)[bottom_neighbor_y][right_neighbor_x];
-    ret.n[4] = (*game_grid)[bottom_neighbor_y][x];
-    ret.n[5] = (*game_grid)[bottom_neighbor_y][left_neighbor_x];
-    ret.n[6] = (*game_grid)[y][left_neighbor_x];
-    ret.n[7] = (*game_grid)[top_neighbor_y][left_neighbor_x];
+    ret.n1 = (*game_grid)[top_neighbor_y][x];
+    ret.n2 = (*game_grid)[top_neighbor_y][right_neighbor_x];
+    ret.n3 = (*game_grid)[y][right_neighbor_x];
+    ret.n4 = (*game_grid)[bottom_neighbor_y][right_neighbor_x];
+    ret.n5 = (*game_grid)[bottom_neighbor_y][x];
+    ret.n6 = (*game_grid)[bottom_neighbor_y][left_neighbor_x];
+    ret.n7 = (*game_grid)[y][left_neighbor_x];
+    ret.n8 = (*game_grid)[top_neighbor_y][left_neighbor_x];
     
     return ret;
 }
 
 bool new_state(bool is_alive, Neighbors nbrs)
 {
-    int count = 0;
-    for(int i = 0 ; i < 8 ; i++)
-        count += nbrs.n[i];
+    union {
+        Neighbors nbrs;
+        unsigned char c;
+    } nbrs_u8;
+    nbrs_u8.nbrs = nbrs;
+    
+    int count =
+#ifdef _MSC_VER
+__popcnt(nbrs_u8.c);
+#else
+__builtin_popcount(nbrs_u8.c);
+#endif
     
     if(is_alive && count < 2)
     {
@@ -257,8 +308,6 @@ bool time_elapsed(double seconds)
         prev_time = now;
         return true;
     }
-    else
-    {
-        return false;
-    }
+    
+    return false;
 }
