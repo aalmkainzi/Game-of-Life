@@ -25,3 +25,5 @@ At the top of the `main.c` there's some configuration options:
 - up/down arrow to change tick speed
 - C to clear screen
 - R to make random grid
+
+Cells can only be put if game is stopped
